@@ -1,16 +1,22 @@
 #include <iostream>
-#include <versionhelpers.h>
+
+#include "SysInfoWin.h"
+
+void PrintInfo()
+{
+  PrintSystemVersion();
+  PrintComputerName();
+  PrintUserName();
+  PrintArchitecture();
+  PrintRAM(Precision::GB);
+  PrintVirtualMemory(Precision::GB);
+  PrintMemoryLoad();
+  PrintPageFile(Precision::GB);
+  PrintProcessorsAmount();
+  PrintDrives(Precision::GB);
+}
 
 int main()
 {
-  if (IsWindows7OrGreater())
-  {
-    std::cout << "Windows 7 or Greater" << std::endl;
-  }
-  else
-  {
-    std::cout << "ngwut" << std::endl;
-  }
-
-  std::cout << "Hello World!" << std::endl;
+  PrintInfo();
 }

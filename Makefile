@@ -8,3 +8,7 @@ windows:
 
 clean:
 	rm -rf build-*
+
+
+l1t1: windows
+	./run build-windows/lab1/task1/SysInfoWin.exe
