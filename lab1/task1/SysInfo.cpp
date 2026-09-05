@@ -201,12 +201,13 @@ namespace
   {
     DiskUsageInfo usageInfo{};
     if (!GetDiskFreeSpaceExA(driveName.c_str(),
-                             &usageInfo.freeBytesAvailableToCaller,
-                             &usageInfo.totalNumberOfBytes,
-                             &usageInfo.totalNumberOfFreeBytes))
+      &usageInfo.freeBytesAvailableToCaller,
+      &usageInfo.totalNumberOfBytes,
+      &usageInfo.totalNumberOfFreeBytes))
     {
       return std::nullopt;
     }
+
     return usageInfo;
   }
 
