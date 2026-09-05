@@ -1,8 +1,7 @@
 #ifndef OS_COURSE_SYSINFO_H
 #define OS_COURSE_SYSINFO_H
 
-#include "SysInfoWin.h"
-
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -11,8 +10,8 @@
 struct OSInfo
 {
   std::string osName;
-  std::string computerName;
-  std::string userName;
+  std::optional<std::string> computerName;
+  std::optional<std::string> userName;
   std::string architecture;
 };
 
@@ -26,15 +25,14 @@ struct PagefileInfo
 {
   SIZE_T commitLimit;
   SIZE_T commitTotal;
-  SIZE_T pageSize;
 };
 
 struct HardwareInfo
 {
-  RAMInfo ramInfo;
-  SIZE_T virtualMemory;
-  DWORD memoryLoad;
-  PagefileInfo pageFileInfo;
+  std::optional<RAMInfo> ramInfo;
+  std::optional<SIZE_T> virtualMemory;
+  std::optional<DWORD> memoryLoad;
+  std::optional<PagefileInfo> pageFileInfo;
   DWORD processorsAmount;
 };
 
@@ -66,6 +64,8 @@ public:
   void PrintInfo() const;
 
 private:
+  std::string ComputerNameToString() const;
+  std::string UserNameToString() const;
   std::string RAMInfoToString() const;
   std::string VMToString() const;
   std::string MemoryLoadToString() const;
@@ -75,9 +75,9 @@ private:
   const Measurement m_measurement;
 
   const OSInfo m_osInfo;
-  HardwareInfo m_hwInfo;
+  const HardwareInfo m_hwInfo;
 
-  std::vector<DriveState> m_driveStates;
+  const std::vector<DriveState> m_driveStates;
 };
 
 

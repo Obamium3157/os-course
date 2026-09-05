@@ -1,10 +1,12 @@
 #include "SysInfo.h"
 
 #include <iostream>
+#include <optional>
+#include <cstring>
+
 #include <lmcons.h>
 #include <versionhelpers.h>
 #include <psapi.h>
-#include <stdexcept>
 
 namespace
 {
@@ -74,25 +76,25 @@ namespace
     return "Unknown Windows version";
   }
 
-  std::string ExtractComputerName()
+  std::optional<std::string> ExtractComputerName()
   {
     char computerName[CNLEN + 1];
     DWORD size = sizeof(computerName);
     if (!GetComputerNameA(computerName, &size))
     {
-      throw std::runtime_error("GetComputerName failed");
+      return std::nullopt;
     }
 
     return computerName;
   }
 
-  std::string ExtractUserName()
+  std::optional<std::string> ExtractUserName()
   {
     char userName[UNLEN + 1];
     DWORD size = sizeof(userName);
     if (!GetUserNameA(userName, &size))
     {
-      throw std::runtime_error("GetUserName failed");
+      return std::nullopt;
     }
 
     return userName;
@@ -114,74 +116,76 @@ namespace
     return systemInfo.dwNumberOfProcessors;
   }
 
-  RAMInfo ExtractRAMInfo()
-  {
-    MEMORYSTATUSEX statex;
-    statex.dwLength = sizeof(statex);
-    GlobalMemoryStatusEx(&statex);
-
-    return {
-      .totalRAM = statex.ullTotalPhys,
-      .freeRAM = statex.ullAvailPhys,
-    };
-  }
-
-  SIZE_T ExtractVMInfo()
-  {
-    PERFORMANCE_INFORMATION pi;
-    pi.cb = sizeof(pi);
-
-    if (!GetPerformanceInfo(&pi, pi.cb))
-    {
-      throw std::runtime_error("Virtual Memory unavailable");
-    }
-
-    return pi.CommitLimit * pi.PageSize;
-  }
-
-  DWORD ExtractMemoryLoad()
+  std::optional<RAMInfo> ExtractRAMInfo()
   {
     MEMORYSTATUSEX statex;
     statex.dwLength = sizeof(statex);
     if (!GlobalMemoryStatusEx(&statex))
     {
-      throw std::runtime_error("Memory Load unavailable");
+      return std::nullopt;
+    }
+
+    return RAMInfo{
+      .totalRAM = statex.ullTotalPhys,
+      .freeRAM = statex.ullAvailPhys,
+    };
+  }
+
+  std::optional<SIZE_T> ExtractVMInfo()
+  {
+    PERFORMANCE_INFORMATION pi;
+    pi.cb = sizeof(pi);
+
+    if (!GetPerformanceInfo(&pi, pi.cb))
+    {
+      return std::nullopt;
+    }
+
+    return pi.CommitLimit * pi.PageSize;
+  }
+
+  std::optional<DWORD> ExtractMemoryLoad()
+  {
+    MEMORYSTATUSEX statex;
+    statex.dwLength = sizeof(statex);
+    if (!GlobalMemoryStatusEx(&statex))
+    {
+      return std::nullopt;
     }
 
     return statex.dwMemoryLoad;
   }
 
-  PagefileInfo ExtractPageFileInfo()
+  std::optional<PagefileInfo> ExtractPageFileInfo()
   {
     PERFORMANCE_INFORMATION pi;
     pi.cb = sizeof(pi);
     if (!GetPerformanceInfo(&pi, pi.cb))
     {
-      throw std::runtime_error("Performance Info unavailable");
+      return std::nullopt;
     }
 
     const auto totalPagefileSize = pi.CommitLimit * pi.PageSize;
-    const auto commitedPagefileSize = pi.CommitTotal * pi.PageSize;
+    const auto committedPagefileSize = pi.CommitTotal * pi.PageSize;
 
-    return {
+    return PagefileInfo{
       .commitLimit = totalPagefileSize,
-      .commitTotal = commitedPagefileSize,
-      .pageSize = pi.PageSize,
+      .commitTotal = committedPagefileSize,
     };
   }
 
-  std::vector<std::string> ExtractDriveNames()
+  std::optional<std::vector<std::string>> ExtractDriveNames()
   {
     const DWORD bufferSize = GetLogicalDriveStringsA(0, nullptr);
     if (bufferSize == 0)
     {
-      throw std::runtime_error("Failed to get drive strings size");
+      return std::nullopt;
     }
 
     std::vector<char> buffer(bufferSize);
     if (GetLogicalDriveStringsA(bufferSize, buffer.data()) == 0)
     {
-      throw std::runtime_error("Failed to get drive strings");
+      return std::nullopt;
     }
 
     std::vector<std::string> driveNames;
@@ -193,38 +197,35 @@ namespace
     return driveNames;
   }
 
-  std::optional<DriveState> ExtractDriveState(const std::string& driveName)
+  std::optional<DiskUsageInfo> ExtractDiskUsage(const std::string& driveName)
   {
-    ULARGE_INTEGER freeBytesAvailableToCaller{};
-    ULARGE_INTEGER totalNumberOfBytes{};
-    ULARGE_INTEGER totalNumberOfFreeBytes{};
-    if (!GetDiskFreeSpaceExA(
-      driveName.c_str(),
-      &freeBytesAvailableToCaller,
-      &totalNumberOfBytes,
-      &totalNumberOfFreeBytes))
+    DiskUsageInfo usageInfo{};
+    if (!GetDiskFreeSpaceExA(driveName.c_str(),
+                             &usageInfo.freeBytesAvailableToCaller,
+                             &usageInfo.totalNumberOfBytes,
+                             &usageInfo.totalNumberOfFreeBytes))
     {
       return std::nullopt;
     }
-
-    return DriveState{
-      .driveName = driveName,
-      .usageInfo = {
-        .freeBytesAvailableToCaller = freeBytesAvailableToCaller,
-        .totalNumberOfBytes = totalNumberOfBytes,
-        .totalNumberOfFreeBytes = totalNumberOfFreeBytes,
-      },
-    };
+    return usageInfo;
   }
 
   std::vector<DriveState> ExtractDriveStates()
   {
-    std::vector<DriveState> driveStates;
-    for (const auto& driveName : ExtractDriveNames())
+    const auto driveNames = ExtractDriveNames();
+    if (!driveNames)
     {
-      if (auto driveState = ExtractDriveState(driveName))
+      return {};
+    }
+
+    std::vector<DriveState> driveStates;
+    driveStates.reserve(driveNames->size());
+
+    for (const auto& driveName : *driveNames)
+    {
+      if (auto usage = ExtractDiskUsage(driveName))
       {
-        driveStates.push_back(*driveState);
+        driveStates.push_back({.driveName = driveName, .usageInfo = *usage});
       }
     }
 
@@ -237,10 +238,9 @@ namespace
     const auto ms = MeasurementToString(measurement);
 
     const auto totalSpace = driveState.usageInfo.totalNumberOfBytes.QuadPart;
-    const auto availableSpace = totalSpace
-      - driveState.usageInfo.totalNumberOfFreeBytes.QuadPart;
+    const auto freeSpace = driveState.usageInfo.totalNumberOfFreeBytes.QuadPart;
 
-    return driveState.driveName + ": " + std::to_string(availableSpace / mv) + " " + ms + " available "
+    return driveState.driveName + ": " + std::to_string(freeSpace / mv) + " " + ms + " free / "
       + std::to_string(totalSpace / mv) + " " + ms + " total";
 
   }
@@ -269,8 +269,8 @@ SysInfo::SysInfo(const Measurement measurement)
 void SysInfo::PrintInfo() const
 {
   std::cout << "OS Name: " << m_osInfo.osName << "\n";
-  std::cout << "Computer Name: " << m_osInfo.computerName << "\n";
-  std::cout << "User Name: " << m_osInfo.userName << "\n";
+  std::cout << "Computer Name: " << ComputerNameToString() << "\n";
+  std::cout << "User Name: " << UserNameToString() << "\n";
   std::cout << "Architecture: " << m_osInfo.architecture << "\n";
   std::cout << "RAM: " << RAMInfoToString() << "\n";
   std::cout << "Virtual Memory: " << VMToString() << "\n";
@@ -280,37 +280,82 @@ void SysInfo::PrintInfo() const
   std::cout << "Drives: \n" + DriveStatesToString();
 }
 
+std::string SysInfo::ComputerNameToString() const
+{
+  if (!m_osInfo.computerName)
+  {
+    return "unavailable";
+  }
+
+  return *m_osInfo.computerName;
+}
+
+std::string SysInfo::UserNameToString() const
+{
+  if (!m_osInfo.userName)
+  {
+    return "unavailable";
+  }
+
+  return *m_osInfo.userName;
+}
+
 std::string SysInfo::RAMInfoToString() const
 {
-  const auto availableRAM = m_hwInfo.ramInfo.totalRAM - m_hwInfo.ramInfo.freeRAM;
+  if (!m_hwInfo.ramInfo)
+  {
+    return "unavailable";
+  }
+
+  const auto usedRAM = m_hwInfo.ramInfo->totalRAM - m_hwInfo.ramInfo->freeRAM;
   const auto mv = GetMeasurementValue(m_measurement);
   const auto ms = MeasurementToString(m_measurement);
 
-  return std::to_string(availableRAM / mv) + " " + ms
-    + " / " + std::to_string(m_hwInfo.ramInfo.totalRAM / mv) + " " + ms;
+  return std::to_string(usedRAM / mv) + " " + ms
+    + " / " + std::to_string(m_hwInfo.ramInfo->totalRAM / mv) + " " + ms;
 }
 
 std::string SysInfo::VMToString() const
 {
-  return std::to_string(m_hwInfo.virtualMemory) + " " + MeasurementToString(m_measurement);
+  if (!m_hwInfo.virtualMemory)
+  {
+    return "unavailable";
+  }
+
+  const auto mv = GetMeasurementValue(m_measurement);
+  return std::to_string(*m_hwInfo.virtualMemory / mv) + " " + MeasurementToString(m_measurement);
 }
 
 std::string SysInfo::MemoryLoadToString() const
 {
-  return std::to_string(m_hwInfo.memoryLoad) + "%";
+  if (!m_hwInfo.memoryLoad)
+  {
+    return "unavailable";
+  }
+
+  return std::to_string(*m_hwInfo.memoryLoad) + "%";
 }
 
 std::string SysInfo::PagefileToString() const
 {
+  if (!m_hwInfo.pageFileInfo)
+  {
+    return "unavailable";
+  }
+
   const auto mv = GetMeasurementValue(m_measurement);
   const auto ms = MeasurementToString(m_measurement);
 
-  return std::to_string(m_hwInfo.pageFileInfo.commitTotal / mv) + " " + ms
-    + " / " + std::to_string(m_hwInfo.pageFileInfo.commitLimit / mv) + " " + ms;
+  return std::to_string(m_hwInfo.pageFileInfo->commitTotal / mv) + " " + ms
+    + " / " + std::to_string(m_hwInfo.pageFileInfo->commitLimit / mv) + " " + ms;
 }
 
 std::string SysInfo::DriveStatesToString() const
 {
+  if (m_driveStates.empty())
+  {
+    return "  - unavailable\n";
+  }
   std::string result;
   for (const auto& driveState : m_driveStates)
   {
