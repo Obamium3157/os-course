@@ -1,1 +1,6 @@
-add_subdirectory(task1)
+if (WIN32)
+    add_subdirectory(task1)
+endif ()
+if (UNIX)
+    add_subdirectory(task2)
+endif ()
