@@ -1,8 +1,11 @@
 #include <iostream>
 
+#include "SysInfo.h"
+
 int main()
 {
-  std::cout << "Hello World!" << std::endl;
+  const SysInfo sysInfo{};
+  sysInfo.PrintInfo();
 
   return 0;
 }
