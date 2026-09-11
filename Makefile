@@ -14,3 +14,6 @@ l1t1: windows
 	./run build-windows/lab1/task1/SysInfoWin.exe
 l1t2: linux
 	./build-linux/lab1/task2/SysInfoLinux
+l1t3: all
+	./run build-windows/lab1/task3/SysInfoCrossplatform.exe
+	./build-linux/lab1/task3/SysInfoCrossplatform
