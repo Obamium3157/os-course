@@ -5,6 +5,12 @@
 #include <cstdint>
 #include <optional>
 
+struct MemoryInfo
+{
+  uint64_t free;
+  uint64_t total;
+};
+
 class SysInfo
 {
 public:
@@ -19,6 +25,7 @@ public:
 private:
   std::string m_OSName;
   std::optional<std::string> m_OSVersion;
+  std::optional<MemoryInfo> m_memoryInfo;
 };
 
 

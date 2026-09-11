@@ -121,6 +121,67 @@ namespace
   }
 #endif
 
+#if defined(_WIN32)
+  std::optional<MemoryInfo> GetMemoryInfoWindows()
+  {
+    MEMORYSTATUSEX statex;
+    statex.dwLength = sizeof(statex);
+    if (!GlobalMemoryStatusEx(&statex))
+    {
+      return std::nullopt;
+    }
+
+    return MemoryInfo{
+      .free = statex.ullAvailPhys / 1024UL / 1024,
+      .total = statex.ullTotalPhys / 1024UL / 1024,
+    };
+  }
+#elif defined(__linux__)
+  std::optional<uint64_t> GetFreeMemoryLinux()
+  {
+    std::ifstream file("/proc/meminfo");
+    if (!file.is_open())
+    {
+      return std::nullopt;
+    }
+
+    std::string token;
+    while (file >> token)
+    {
+      if (token == "MemAvailable:")
+      {
+        if (unsigned long mem; file >> mem)
+        {
+          return mem / 1024UL;
+        }
+        return std::nullopt;
+      }
+    }
+
+    return std::nullopt;
+  }
+
+  std::optional<MemoryInfo> GetMemoryInfoLinux()
+  {
+    const auto freeMemory = GetFreeMemoryLinux();
+    if (!freeMemory)
+    {
+      return std::nullopt;
+    }
+
+    struct sysinfo buffer{};
+    if (sysinfo(&buffer) != 0)
+    {
+      return std::nullopt;
+    }
+
+    return MemoryInfo{
+      .free = *freeMemory,
+      .total = buffer.totalram / 1024UL / 1024
+    };
+  }
+#endif
+
   std::string GetOSNameImpl()
   {
 #if defined(_WIN32)
@@ -129,6 +190,7 @@ namespace
     return "Linux";
 #endif
   }
+
   std::optional<std::string> GetOSVersionImpl()
   {
 #if defined(_WIN32)
@@ -137,11 +199,21 @@ namespace
     return GetOSVersionLinux();
 #endif
   }
+
+  std::optional<MemoryInfo> GetMemoryInfoImpl()
+  {
+#if defined(_WIN32)
+    return GetMemoryInfoWindows();
+#elif defined(__linux__)
+    return GetMemoryInfoLinux();
+#endif
+  }
 }
 
 SysInfo::SysInfo()
   : m_OSName(GetOSNameImpl())
   , m_OSVersion(GetOSVersionImpl())
+  , m_memoryInfo(GetMemoryInfoImpl())
 {
 }
 
@@ -158,4 +230,14 @@ std::string SysInfo::GetOSVersion() const
   }
 
   return *m_OSVersion;
+}
+
+uint64_t SysInfo::GetFreeMemory() const
+{
+  return m_memoryInfo->free;
+}
+
+uint64_t SysInfo::GetTotalMemory() const
+{
+  return m_memoryInfo->total;
 }
