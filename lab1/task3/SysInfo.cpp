@@ -182,6 +182,27 @@ namespace
   }
 #endif
 
+#if defined(_WIN32)
+  std::optional<unsigned> GetProcessorCountWindows()
+  {
+    SYSTEM_INFO systemInfo;
+    GetSystemInfo(&systemInfo);
+
+    return systemInfo.dwNumberOfProcessors;
+  }
+#elif defined(__linux__)
+  std::optional<unsigned> GetProcessorCountLinux()
+  {
+    const auto np = get_nprocs();
+    if (np == -1)
+    {
+      return std::nullopt;
+    }
+
+    return static_cast<unsigned>(np);
+  }
+#endif
+
   std::string GetOSNameImpl()
   {
 #if defined(_WIN32)
@@ -208,12 +229,22 @@ namespace
     return GetMemoryInfoLinux();
 #endif
   }
+
+  std::optional<unsigned> GetProcessorCountImpl()
+  {
+#if defined(_WIN32)
+    return GetProcessorCountWindows();
+#elif defined(__linux__)
+    return GetProcessorCountLinux();
+#endif
+  }
 }
 
 SysInfo::SysInfo()
   : m_OSName(GetOSNameImpl())
   , m_OSVersion(GetOSVersionImpl())
   , m_memoryInfo(GetMemoryInfoImpl())
+  , m_processorCount(GetProcessorCountImpl())
 {
 }
 
@@ -222,22 +253,22 @@ std::string SysInfo::GetOSName() const
   return m_OSName;
 }
 
-std::string SysInfo::GetOSVersion() const
+std::optional<std::string> SysInfo::GetOSVersion() const
 {
-  if (!m_OSVersion)
-  {
-    return "unknown";
-  }
-
   return *m_OSVersion;
 }
 
-uint64_t SysInfo::GetFreeMemory() const
+std::optional<uint64_t> SysInfo::GetFreeMemory() const
 {
   return m_memoryInfo->free;
 }
 
-uint64_t SysInfo::GetTotalMemory() const
+std::optional<uint64_t> SysInfo::GetTotalMemory() const
 {
   return m_memoryInfo->total;
+}
+
+std::optional<unsigned> SysInfo::GetProcessorCount() const
+{
+  return m_processorCount;
 }

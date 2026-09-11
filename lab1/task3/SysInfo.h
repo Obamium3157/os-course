@@ -17,15 +17,16 @@ public:
   SysInfo();
 
   std::string GetOSName() const;
-  std::string GetOSVersion() const;
-  uint64_t GetFreeMemory() const;
-  uint64_t GetTotalMemory() const;
-  unsigned GetProcessorCount() const;
+  std::optional<std::string> GetOSVersion() const;
+  std::optional<uint64_t> GetFreeMemory() const;
+  std::optional<uint64_t> GetTotalMemory() const;
+  std::optional<unsigned> GetProcessorCount() const;
 
 private:
   std::string m_OSName;
   std::optional<std::string> m_OSVersion;
   std::optional<MemoryInfo> m_memoryInfo;
+  std::optional<unsigned> m_processorCount;
 };
 
 
