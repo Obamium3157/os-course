@@ -4,3 +4,5 @@ endif ()
 if (UNIX)
     add_subdirectory(task2)
 endif ()
+
+add_subdirectory(task3)
