@@ -1,7 +1,6 @@
 #if defined(_WIN32)
 
 #include <windows.h>
-#include <lmcons.h>
 #include <versionhelpers.h>
 #include <psapi.h>
 

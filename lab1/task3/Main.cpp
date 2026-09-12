@@ -2,6 +2,8 @@
 
 #include "SysInfo.h"
 
+// TODO: сделать общий интерфейс для SysInfo и сделать две реализации (Windows & Linux)
+
 int main()
 {
   SysInfo sysInfo{};
