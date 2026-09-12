@@ -19,7 +19,7 @@ wc -l wchelp.txt | cut -d ' ' -f 1 > wchelp-lines.txt
 
 tac wchelp.txt > wchelp-reversed.txt
 
-cat  wchelp.txt wchelp-reversed.txt me.txt metoo.txt wchelp-lines.txt > all.txt
+cat wchelp.txt wchelp-reversed.txt me.txt metoo.txt wchelp-lines.txt > all.txt
 
 tar -zcf result.tar *.txt
 
