@@ -15,7 +15,7 @@ struct OSInfo
   std::string architecture;
 };
 
-struct RAMInfo
+struct SysinfoPair
 {
   DWORDLONG totalRAM;
   DWORDLONG freeRAM;
@@ -29,7 +29,7 @@ struct PagefileInfo
 
 struct HardwareInfo
 {
-  std::optional<RAMInfo> ramInfo;
+  std::optional<SysinfoPair> ramInfo;
   std::optional<SIZE_T> virtualMemory;
   std::optional<DWORD> memoryLoad;
   std::optional<PagefileInfo> pageFileInfo;

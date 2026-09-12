@@ -116,7 +116,7 @@ namespace
     return systemInfo.dwNumberOfProcessors;
   }
 
-  std::optional<RAMInfo> ExtractRAMInfo()
+  std::optional<SysinfoPair> ExtractRAMInfo()
   {
     MEMORYSTATUSEX statex;
     statex.dwLength = sizeof(statex);
@@ -125,7 +125,7 @@ namespace
       return std::nullopt;
     }
 
-    return RAMInfo{
+    return SysinfoPair{
       .totalRAM = statex.ullTotalPhys,
       .freeRAM = statex.ullAvailPhys,
     };
@@ -191,6 +191,7 @@ namespace
     std::vector<std::string> driveNames;
     for (const char* pDrive = buffer.data(); *pDrive != '\0'; pDrive += strlen(pDrive) + 1)
     {
+      // TODO: рассказать, в чем разница между push и emplace
       driveNames.emplace_back(pDrive);
     }
 
