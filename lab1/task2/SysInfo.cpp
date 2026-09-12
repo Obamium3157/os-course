@@ -244,6 +244,7 @@ namespace
 
   std::optional<unsigned long> GetProcessorsAmount()
   {
+    // TODO: что такое np
     const auto np = get_nprocs();
     if (np == -1)
     {
@@ -367,6 +368,7 @@ namespace
       });
     }
 
+    // TODO: написать RAII-обертку
     endmntent(mounts);
 
     return drives;
