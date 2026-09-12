@@ -220,7 +220,7 @@ namespace
     return std::nullopt;
   }
 
-  std::optional<unsigned long> GetRAM()
+  std::optional<unsigned long> GetFreeRAM()
   {
     std::ifstream file("/proc/meminfo");
     if (!file.is_open())
@@ -276,7 +276,7 @@ namespace
     {
       case SysInfoPairType::RAM:
       {
-        const auto freeRAM = GetRAM();
+        const auto freeRAM = GetFreeRAM();
         if (!freeRAM)
         {
           return std::nullopt;
