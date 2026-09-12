@@ -191,7 +191,6 @@ namespace
     std::vector<std::string> driveNames;
     for (const char* pDrive = buffer.data(); *pDrive != '\0'; pDrive += strlen(pDrive) + 1)
     {
-      // TODO: рассказать, в чем разница между push и emplace
       driveNames.emplace_back(pDrive);
     }
 
