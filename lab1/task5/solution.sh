@@ -1,4 +1,5 @@
-#!/usr/bin/bash
+#!/bin/bash
+# TODO: почему работает без /usr/
 
 set -e
 
@@ -7,6 +8,7 @@ if [ -d out ]; then
 else
   mkdir out
 fi
+
 cd out
 
 whoami > me.txt
@@ -21,7 +23,7 @@ tac wchelp.txt > wchelp-reversed.txt
 
 cat wchelp.txt wchelp-reversed.txt me.txt metoo.txt wchelp-lines.txt > all.txt
 
-tar -zcf result.tar *.txt
+tar -czf result.tar *.txt # TODO: в чем разница между -z и отдельной командой gzip
 
 gzip result.tar
 
